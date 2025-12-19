@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>非固定WiFi熱點查詢系統</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <!-- Awesome Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" />
+    <style>
+        .element-hidden {
+            display: none !important;
+        }
+        /* Reset & Base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            min-height: 100vh;
+            padding: 16px;
+            color: #1f2937;
+        }
+        /* Layout */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-height: 100vh;
+        }
+        /* Header */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(12px);
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .header h1 {
+            color: #111827;
+            font-size: 1.875rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .header .subtitle {
+            color: #6b7280;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+        /* Main Content */
+        .main-content {
+            display: flex;
+            flex: 1;
+            gap: 20px;
+        }
+        .map-section {
+            flex: 0 0 60%;
+        }
+        .data-section {
+            flex: 0 0 40%;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow-y: auto;
+            max-height: 73vh;
+        }
+        /* Map Section */
+        .map-container {
+            height: 73vh !important;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+        }
+        #map {
+            height: 100%;
+            width: 100%;
+            border-radius: 16px;
+        }
+        /* Data Section Styles */
+        .data-header {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .data-header h2 {
+            color: #111827;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .data-header .subtitle {
+            color: #6b7280;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        .data-stats {
+            display: flex;
+            justify-content: space-around;
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #e5e7eb;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #4f46e5;
+            display: block;
+        }
+        .stat-label {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+        .accordion-container {
+            margin-top: 20px;
+        }
+        .location-group {
+            margin-bottom: 16px;
+        }
+        .location-header {
+            background: #4f46e5 !important;
+            color: white !important;
+            border-radius: 8px 8px 0 0;
+            padding: 12px 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            margin-bottom: 0;
+        }
+        .vehicle-type-header {
+            background: #3b82f6 !important;
+            color: white !important;
+            padding: 10px 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            margin: 8px 0;
+            border-radius: 6px;
+        }
+        .ssid-header {
+            background: #10b981 !important;
+            color: white !important;
+            padding: 8px 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            margin: 5px 0 5px 10px;
+            border-radius: 4px;
+        }
+        .location-content {
+            background: #f8fafc;
+            padding: 10px;
+            border-radius: 0 0 8px 8px;
+            border: 1px solid #e5e7eb;
+            border-top: none;
+            display: none;
+        }
+        .vehicle-type-content {
+            background: #f1f5f9;
+            padding: 10px;
+            margin: 0 0 10px 10px;
+            border-radius: 0 0 6px 6px;
+            display: none;
+        }
+        .ssid-content {
+            background: #f8fafc;
+            padding: 10px;
+            margin: 0 0 5px 20px;
+            border-radius: 0 0 4px 4px;
+            display: none;
+        }
+        .details-content {
+            background: white;
+            padding: 15px;
+            margin: 5px 0 10px 30px;
+            border-radius: 4px;
+            border: 1px solid #e5e7eb;
+            display: none;
+        }
+        .info-row {
+            display: flex;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #374151;
+            width: 150px;
+            flex-shrink: 0;
+        }
+        .info-value {
+            flex: 1;
+            color: #6b7280;
+            word-break: break-word;
+        }
+        .info-value a {
+            color: #4f46e5;
+            text-decoration: none;
+        }
+        .info-value a:hover {
+            text-decoration: underline;
+        }
+        .no-data {
+            text-align: center;
+            padding: 40px 20px;
+            color: #9ca3af;
+        }
+        .no-data i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6b7280;
+        }
+        .loading-spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #4f46e5;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+        /* Marker styles */
+        .wifi-marker {
+            background: #4f46e5;
+            border: 2px solid white;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .wifi-marker.selected {
+            background: #ef4444;
+            width: 20px;
+            height: 20px;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
+        }
+        /* Footer */
+        .footer {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.875rem;
+            padding: 20px;
+            margin-top: auto;
+        }
+        /* Mobile Optimizations */
+        @media (max-width: 768px) {
+            body {
+                padding: 12px;
+                background: #4f46e5;
+            }
+            .container {
+                gap: 16px;
+            }
+            .header {
+                padding: 16px;
+                border-radius: 12px;
+            }
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            .main-content {
+                flex-direction: column;
+            }
+            .map-section,
+            .data-section {
+                flex: 1 1 100%;
+                width: 100%;
+            }
+            .map-container {
+                height: 400px;
+                border-radius: 12px;
+            }
+            .data-section {
+                max-height: 400px;
+                padding: 15px;
+            }
+            .data-header h2 {
+                font-size: 1.3rem;
+            }
+            .stat-value {
+                font-size: 1.5rem;
+            }
+            .info-row {
+                flex-direction: column;
+                margin-bottom: 15px;
+            }
+            .info-label {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+            .location-header,
+            .vehicle-type-header,
+            .ssid-header {
+                padding: 10px 12px;
+                font-size: 0.9rem;
+            }
+        }
+        /* Desktop Enhancements */
+        @media (min-width: 1200px) {
+            .map-container {
+                height: 600px;
+            }
+        }
+        /* Leaflet Customizations */
+        .leaflet-control-layers {
+            border-radius: 8px !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+        }
+        /* Smooth Transitions */
+        * {
+            transition: all 0.3s ease;
+        }
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 3000;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>非固定WiFi熱點查詢系統</h1>
+            <p class="subtitle">香港非固定WiFi熱點位置及詳細資訊</p>
+        </header>
+        <main class="main-content">
+            <section class="map-section">
+                <div class="map-container">
+                    <div id="map"></div>
+                </div>
+            </section>
+            <section class="data-section">
+                <div class="data-header">
+                    <h2>WiFi熱點列表</h2>
+                    <p class="subtitle">按地點、交通工具類型、SSID分組查看</p>
+                </div>
+                <div class="data-stats">
+                    <div class="stat-item">
+                        <span id="total-hotspots" class="stat-value">0</span>
+                        <span class="stat-label">熱點總數</span>
+                    </div>
+                    <div class="stat-item">
+                        <span id="total-locations" class="stat-value">0</span>
+                        <span class="stat-label">地點數目</span>
+                    </div>
+                    <div class="stat-item">
+                        <span id="total-vehicle-types" class="stat-value">0</span>
+                        <span class="stat-label">交通工具類型</span>
+                    </div>
+                </div>
+                <div class="accordion-container" id="accordion-container">
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                        <p>正在加載WiFi熱點資料...</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+        <footer class="footer">
+            <p>非固定WiFi熱點查詢系統 | 資料來源: 香港政府數碼政策辦公室 | 支援桌面及流動裝置</p>
+        </footer>
+    </div>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script>
+        // 定義數據源 - 非固定WiFi熱點資料
+        const DATA_SOURCE_URL = 'https://www.digitalpolicy.gov.hk/open_data/wifi_hk/non-fixed-wi-fi-hk-locations.json';
+        
+        // 全局變量
+        let map;
+        let wifiHotspots = [];
+        let markersLayer = L.layerGroup();
+        let selectedMarker = null;
+        let totalHotspots = 0;
+        let totalLocations = 0;
+        let totalVehicleTypes = 0;
+
+        // 初始化地圖配置 - 以香港為中心
+        const MAP_CONFIG = {
+            center: [22.3193, 114.1694], // 香港中心點
+            zoom: 12
+        };
+
+        // 初始化應用
+        document.addEventListener('DOMContentLoaded', function () {
+            initMap();
+            loadWifiHotspotData();
+        });
+
+        function initMap() {
+            // 初始化地圖
+            map = L.map('map', {
+                zoomControl: true,
+                attributionControl: true
+            }).setView(MAP_CONFIG.center, MAP_CONFIG.zoom);
+
+            // 添加地圖圖層
+            const tileLayers = {
+                "開放街道地圖": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap',
+                    maxZoom: 19,
+                    subdomains: ['a', 'b', 'c']
+                }),
+                "衛星圖像": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: '© Esri',
+                    maxZoom: 19
+                }),
+                "地形圖": L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenTopoMap',
+                    maxZoom: 17
+                })
+            };
+
+            tileLayers["開放街道地圖"].addTo(map);
+
+            // 添加圖層控制
+            L.control.layers(tileLayers, null, {
+                collapsed: true,
+                position: 'topright'
+            }).addTo(map);
+
+            // 添加標記圖層
+            markersLayer.addTo(map);
+        }
+
+        async function loadWifiHotspotData() {
+            try {
+                const response = await fetch(DATA_SOURCE_URL);
+                const data = await response.json();
+                
+                if (data && data.length > 0) {
+                    wifiHotspots = data;
+                    updateStatistics();
+                    updateHotspotsList(data);
+                    
+                    // 由於非固定WiFi熱點沒有地理坐標數據，我們不在地圖上顯示標記
+                    showNotification(`成功加載 ${data.length} 個WiFi熱點資料`, 'success');
+                } else {
+                    document.getElementById('accordion-container').innerHTML =
+                        '<div class="no-data"><i class="fas fa-wifi-slash"></i><p>未找到WiFi熱點資料</p></div>';
+                }
+            } catch (error) {
+                console.error('加載數據時出錯:', error);
+                document.getElementById('accordion-container').innerHTML =
+                    '<div class="no-data"><i class="fas fa-exclamation-triangle"></i><p>加載數據時出錯</p></div>';
+                showNotification('加載數據時出錯，請稍後再試', 'error');
+            }
+        }
+
+        function updateStatistics() {
+            // 計算統計數據
+            totalHotspots = wifiHotspots.length;
+            
+            // 計算唯一地點數目
+            const uniqueLocations = new Set();
+            wifiHotspots.forEach(hotspot => {
+                if (hotspot.LocationNameTC) {
+                    uniqueLocations.add(hotspot.LocationNameTC);
+                }
+            });
+            totalLocations = uniqueLocations.size;
+            
+            // 計算交通工具類型數目
+            const uniqueVehicleTypes = new Set();
+            wifiHotspots.forEach(hotspot => {
+                if (hotspot.VehicleTypeNameTC) {
+                    uniqueVehicleTypes.add(hotspot.VehicleTypeNameTC);
+                }
+            });
+            totalVehicleTypes = uniqueVehicleTypes.size;
+            
+            // 更新統計顯示
+            document.getElementById('total-hotspots').textContent = totalHotspots;
+            document.getElementById('total-locations').textContent = totalLocations;
+            document.getElementById('total-vehicle-types').textContent = totalVehicleTypes;
+        }
+
+        function updateHotspotsList(hotspots) {
+            const container = document.getElementById('accordion-container');
+            
+            if (hotspots.length === 0) {
+                container.innerHTML = '<div class="no-data"><i class="fas fa-wifi-slash"></i><p>未找到WiFi熱點資料</p></div>';
+                return;
+            }
+
+            // 按照要求的分組結構: LocationNameTC -> VehicleTypeNameTC -> SSID -> Details
+            const groupedData = {};
+            
+            // 第一步：按LocationNameTC分組
+            hotspots.forEach(hotspot => {
+                const location = hotspot.LocationNameTC || '未分類地點';
+                const vehicleType = hotspot.VehicleTypeNameTC || '未分類交通工具類型';
+                const ssid = hotspot.SSID || '未提供SSID';
+                const locationId = hotspot.LocationID || '未提供ID';
+                
+                if (!groupedData[location]) {
+                    groupedData[location] = {};
+                }
+                
+                if (!groupedData[location][vehicleType]) {
+                    groupedData[location][vehicleType] = {};
+                }
+                
+                if (!groupedData[location][vehicleType][ssid]) {
+                    groupedData[location][vehicleType][ssid] = [];
+                }
+                
+                groupedData[location][vehicleType][ssid].push({
+                    ...hotspot,
+                    id: locationId
+                });
+            });
+
+            // 生成手風琴HTML
+            let accordionHTML = '';
+            const locations = Object.keys(groupedData).sort();
+            
+            locations.forEach((location, locationIndex) => {
+                const vehicleTypes = groupedData[location];
+                const vehicleTypeKeys = Object.keys(vehicleTypes);
+                
+                accordionHTML += `
+                    <div class="location-group" data-location="${location}">
+                        <div class="location-header" onclick="toggleGroup('location-${locationIndex}')">
+                            <div>
+                                <i class="fas fa-building" style="margin-right: 8px;"></i>
+                                <span>${locationIndex + 1}. ${location} (${getTotalHotspotsInLocation(vehicleTypes)}個熱點)</span>
+                            </div>
+                            <i class="fas fa-chevron-down" id="icon-location-${locationIndex}"></i>
+                        </div>
+                        <div id="location-${locationIndex}" class="location-content">
+                `;
+                
+                vehicleTypeKeys.forEach((vehicleType, typeIndex) => {
+                    const ssids = vehicleTypes[vehicleType];
+                    const ssidKeys = Object.keys(ssids);
+                    
+                    accordionHTML += `
+                        <div class="vehicle-type-header" onclick="toggleGroup('vehicle-${locationIndex}-${typeIndex}')">
+                            <div>
+                                <i class="fas fa-bus" style="margin-right: 8px;"></i>
+                                <span>${vehicleType} (${getTotalHotspotsInVehicleType(ssids)}個熱點)</span>
+                            </div>
+                            <i class="fas fa-chevron-down" id="icon-vehicle-${locationIndex}-${typeIndex}"></i>
+                        </div>
+                        <div id="vehicle-${locationIndex}-${typeIndex}" class="vehicle-type-content">
+                    `;
+                    
+                    ssidKeys.forEach((ssid, ssidIndex) => {
+                        const hotspotsList = ssids[ssid];
+                        
+                        accordionHTML += `
+                            <div class="ssid-header" onclick="toggleGroup('ssid-${locationIndex}-${typeIndex}-${ssidIndex}')">
+                                <div>
+                                    <i class="fas fa-wifi" style="margin-right: 8px;"></i>
+                                    <span>${ssid} (${hotspotsList.length}個熱點)</span>
+                                </div>
+                                <i class="fas fa-chevron-down" id="icon-ssid-${locationIndex}-${typeIndex}-${ssidIndex}"></i>
+                            </div>
+                            <div id="ssid-${locationIndex}-${typeIndex}-${ssidIndex}" class="ssid-content">
+                        `;
+                        
+                        hotspotsList.forEach((hotspot, hotspotIndex) => {
+                            const hotspotId = `hotspot-${locationIndex}-${typeIndex}-${ssidIndex}-${hotspotIndex}`;
+                            
+                            accordionHTML += `
+                                <div class="facility-item" id="${hotspotId}">
+                                    <div class="facility-header" style="background: #8b5cf6; color: white; margin: 5px 0 0 10px;" 
+                                         onclick="toggleDetails('${hotspotId}-details')">
+                                        <div>
+                                            <i class="fas fa-map-marker-alt" style="margin-right: 8px;"></i>
+                                            <span>${hotspot.LocationID || '未提供ID'}</span>
+                                        </div>
+                                        <i class="fas fa-chevron-down" id="icon-${hotspotId}"></i>
+                                    </div>
+                                    <div id="${hotspotId}-details" class="details-content">
+                            `;
+                            
+                            // 顯示所有詳細信息
+                            accordionHTML += createHotspotDetailsHTML(hotspot);
+                            
+                            accordionHTML += `
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        
+                        accordionHTML += `
+                            </div>
+                        `;
+                    });
+                    
+                    accordionHTML += `
+                        </div>
+                    `;
+                });
+                
+                accordionHTML += `
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = accordionHTML;
+        }
+
+        function getTotalHotspotsInLocation(vehicleTypes) {
+            let total = 0;
+            Object.values(vehicleTypes).forEach(ssids => {
+                Object.values(ssids).forEach(hotspots => {
+                    total += hotspots.length;
+                });
+            });
+            return total;
+        }
+
+        function getTotalHotspotsInVehicleType(ssids) {
+            let total = 0;
+            Object.values(ssids).forEach(hotspots => {
+                total += hotspots.length;
+            });
+            return total;
+        }
+
+        function createHotspotDetailsHTML(hotspot) {
+            let html = '';
+            
+            // 基本信息
+            html += '<div class="info-row">';
+            html += '<div class="info-label">位置ID</div>';
+            html += `<div class="info-value">${hotspot.LocationID || '未提供'}</div>`;
+            html += '</div>';
+            
+            html += '<div class="info-row">';
+            html += '<div class="info-label">位置名稱</div>';
+            html += `<div class="info-value">${hotspot.LocationNameTC || '未提供'}`;
+            if (hotspot.LocationNameEN) html += `<br/>${hotspot.LocationNameEN}`;
+            if (hotspot.LocationNameSC) html += `<br/>${hotspot.LocationNameSC}`;
+            html += '</div>';
+            html += '</div>';
+            
+            html += '<div class="info-row">';
+            html += '<div class="info-label">交通工具類型</div>';
+            html += `<div class="info-value">${hotspot.VehicleTypeNameTC || '未提供'}`;
+            if (hotspot.VehicleTypeNameEN) html += `<br/>${hotspot.VehicleTypeNameEN}`;
+            if (hotspot.VehicleTypeNameSC) html += `<br/>${hotspot.VehicleTypeNameSC}`;
+            html += '</div>';
+            html += '</div>';
+            
+            html += '<div class="info-row">';
+            html += '<div class="info-label">SSID</div>';
+            html += `<div class="info-value">${hotspot.SSID || '未提供'}</div>`;
+            html += '</div>';
+            
+            html += '<div class="info-row">';
+            html += '<div class="info-label">熱點數量</div>';
+            html += `<div class="info-value">${hotspot.NumberOfHotspots || '未提供'}</div>`;
+            html += '</div>';
+            
+            html += '<div class="info-row">';
+            html += '<div class="info-label">數碼證書</div>';
+            html += `<div class="info-value">${hotspot.DigitalCertificate || '未提供'}</div>`;
+            html += '</div>';
+            
+            html += '<div class="info-row">';
+            html += '<div class="info-label">支援熱線</div>';
+            html += `<div class="info-value">${hotspot.SupportHotline || '未提供'}</div>`;
+            html += '</div>';
+            
+            html += '<div class="info-row">';
+            html += '<div class="info-label">支援電郵</div>';
+            html += `<div class="info-value">`;
+            if (hotspot.SupportEmail) {
+                html += `<a href="mailto:${hotspot.SupportEmail}">${hotspot.SupportEmail}</a>`;
+            } else {
+                html += '未提供';
+            }
+            html += '</div>';
+            html += '</div>';
+            
+            // 更多信息（如果存在）
+            if (hotspot.MoreInformationTC || hotspot.MoreInformationEN || hotspot.MoreInformationSC) {
+                html += '<div class="info-row">';
+                html += '<div class="info-label">更多信息</div>';
+                html += '<div class="info-value">';
+                if (hotspot.MoreInformationTC) html += hotspot.MoreInformationTC + '<br/>';
+                if (hotspot.MoreInformationEN) html += hotspot.MoreInformationEN + '<br/>';
+                if (hotspot.MoreInformationSC) html += hotspot.MoreInformationSC;
+                html += '</div>';
+                html += '</div>';
+            }
+            
+            // 更多信息連結（如果存在）
+            if (hotspot.MoreInformationLinkTC || hotspot.MoreInformationLinkEN || hotspot.MoreInformationLinkSC) {
+                html += '<div class="info-row">';
+                html += '<div class="info-label">更多信息連結</div>';
+                html += '<div class="info-value">';
+                if (hotspot.MoreInformationLinkTC) {
+                    html += `<a href="${hotspot.MoreInformationLinkTC}" target="_blank">${hotspot.MoreInformationLinkTC}</a><br/>`;
+                }
+                if (hotspot.MoreInformationLinkEN) {
+                    html += `<a href="${hotspot.MoreInformationLinkEN}" target="_blank">${hotspot.MoreInformationLinkEN}</a><br/>`;
+                }
+                if (hotspot.MoreInformationLinkSC) {
+                    html += `<a href="${hotspot.MoreInformationLinkSC}" target="_blank">${hotspot.MoreInformationLinkSC}</a>`;
+                }
+                html += '</div>';
+                html += '</div>';
+            }
+            
+            // 備註（如果存在）
+            if (hotspot.RemarksTC || hotspot.RemarksEN || hotspot.RemarksSC) {
+                html += '<div class="info-row">';
+                html += '<div class="info-label">備註</div>';
+                html += '<div class="info-value">';
+                if (hotspot.RemarksTC) html += hotspot.RemarksTC + '<br/>';
+                if (hotspot.RemarksEN) html += hotspot.RemarksEN + '<br/>';
+                if (hotspot.RemarksSC) html += hotspot.RemarksSC;
+                html += '</div>';
+                html += '</div>';
+            }
+            
+            html += '<div class="info-row">';
+            html += '<div class="info-label">機構代碼</div>';
+            html += `<div class="info-value">${hotspot.OrganisationCode || '未提供'}</div>`;
+            html += '</div>';
+            
+            return html;
+        }
+
+        function toggleGroup(groupId) {
+            const content = document.getElementById(groupId);
+            const icon = document.getElementById(`icon-${groupId}`);
+            
+            if (content.style.display === 'none' || !content.style.display) {
+                content.style.display = 'block';
+                if (icon) icon.className = 'fas fa-chevron-up';
+            } else {
+                content.style.display = 'none';
+                if (icon) icon.className = 'fas fa-chevron-down';
+            }
+        }
+
+        function toggleDetails(detailsId) {
+            const content = document.getElementById(detailsId);
+            const icon = document.getElementById(`icon-${detailsId.replace('-details', '')}`);
+            
+            if (content.style.display === 'none' || !content.style.display) {
+                content.style.display = 'block';
+                if (icon) icon.className = 'fas fa-chevron-up';
+            } else {
+                content.style.display = 'none';
+                if (icon) icon.className = 'fas fa-chevron-down';
+            }
+        }
+
+        function showNotification(message, type = 'info') {
+            // 移除現有通知
+            const existingNotification = document.querySelector('.notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+
+            // 創建通知元素
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.style.backgroundColor = type === 'success' ? '#10b981' : (type === 'error' ? '#ef4444' : '#3b82f6');
+            notification.style.color = 'white';
+            
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : (type === 'error' ? 'exclamation-circle' : 'info-circle')}"></i>
+                <span>${message}</span>
+            `;
+
+            // 添加到文檔
+            document.body.appendChild(notification);
+
+            // 3秒後移除
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // 首次加載顯示教程
+        if (!localStorage.getItem('wifiTutorialShown')) {
+            setTimeout(() => {
+                alert("歡迎使用非固定WiFi熱點查詢系統！\n\n• WiFi熱點按地點、交通工具類型、SSID分組顯示\n• 點擊各級標題可展開/收起詳細資訊\n• 點擊具體熱點的標題可查看完整詳細信息\n• 可使用左上角圖層控制切換地圖樣式");
+                localStorage.setItem('wifiTutorialShown', 'true');
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
