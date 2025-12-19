@@ -188,24 +188,40 @@
         }
         .vehicle-type-content {
             background: #f1f5f9;
-            padding: 10px;
-            margin: 0 0 10px 10px;
+            padding: 10px 10px 10px 0;
+            margin: 0 0 10px 0px;
             border-radius: 0 0 6px 6px;
             display: none;
         }
         .ssid-content {
             background: #f8fafc;
             padding: 10px;
-            margin: 0 0 5px 20px;
+            margin: 0 0 5px 0px;
             border-radius: 0 0 4px 4px;
             display: none;
         }
-        .details-content {
+        .hotspot-item {
             background: white;
-            padding: 15px;
-            margin: 5px 0 10px 30px;
+            margin: 10px 0 0 10px;
             border-radius: 4px;
             border: 1px solid #e5e7eb;
+        }
+        .hotspot-header {
+            background: #8b5cf6 !important;
+            color: white !important;
+            padding: 10px 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            margin: 0;
+            border-radius: 4px 4px 0 0;
+        }
+        .hotspot-details {
+            background: #fefefe;
+            padding: 15px;
+            border-radius: 0 0 4px 4px;
             display: none;
         }
         .info-row {
@@ -346,7 +362,8 @@
             }
             .location-header,
             .vehicle-type-header,
-            .ssid-header {
+            .ssid-header,
+            .hotspot-header {
                 padding: 10px 12px;
                 font-size: 0.9rem;
             }
@@ -448,26 +465,22 @@
         let totalHotspots = 0;
         let totalLocations = 0;
         let totalVehicleTypes = 0;
-
         // 初始化地圖配置 - 以香港為中心
         const MAP_CONFIG = {
             center: [22.3193, 114.1694], // 香港中心點
             zoom: 12
         };
-
         // 初始化應用
         document.addEventListener('DOMContentLoaded', function () {
             initMap();
             loadWifiHotspotData();
         });
-
         function initMap() {
             // 初始化地圖
             map = L.map('map', {
                 zoomControl: true,
                 attributionControl: true
             }).setView(MAP_CONFIG.center, MAP_CONFIG.zoom);
-
             // 添加地圖圖層
             const tileLayers = {
                 "開放街道地圖": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -484,19 +497,15 @@
                     maxZoom: 17
                 })
             };
-
             tileLayers["開放街道地圖"].addTo(map);
-
             // 添加圖層控制
             L.control.layers(tileLayers, null, {
                 collapsed: true,
                 position: 'topright'
             }).addTo(map);
-
             // 添加標記圖層
             markersLayer.addTo(map);
         }
-
         async function loadWifiHotspotData() {
             try {
                 const response = await fetch(PROXY_URL + DATA_SOURCE_URL);
@@ -528,7 +537,6 @@
                 showNotification('加載數據時出錯，請稍後再試', 'error');
             }
         }
-
         function updateStatistics() {
             // 計算統計數據
             totalHotspots = wifiHotspots.length;
@@ -556,7 +564,6 @@
             document.getElementById('total-locations').textContent = totalLocations;
             document.getElementById('total-vehicle-types').textContent = totalVehicleTypes;
         }
-
         function updateHotspotsList(hotspots) {
             const container = document.getElementById('accordion-container');
             
@@ -564,8 +571,7 @@
                 container.innerHTML = '<div class="no-data"><i class="fas fa-wifi-slash"></i><p>未找到WiFi熱點資料</p></div>';
                 return;
             }
-
-            // 按照要求的分組結構: LocationNameTC -> VehicleTypeNameTC -> SSID -> Details
+            // 按照要求的分組結構: LocationNameTC -> VehicleTypeNameTC -> SSID -> 各個熱點
             const groupedData = {};
             
             // 第一步：按LocationNameTC分組
@@ -573,7 +579,6 @@
                 const location = hotspot.LocationNameTC || '未分類地點';
                 const vehicleType = hotspot.VehicleTypeNameTC || '未分類交通工具類型';
                 const ssid = hotspot.SSID || '未提供SSID';
-                const locationId = hotspot.LocationID || '未提供ID';
                 
                 if (!groupedData[location]) {
                     groupedData[location] = {};
@@ -587,12 +592,8 @@
                     groupedData[location][vehicleType][ssid] = [];
                 }
                 
-                groupedData[location][vehicleType][ssid].push({
-                    ...hotspot,
-                    id: locationId
-                });
+                groupedData[location][vehicleType][ssid].push(hotspot);
             });
-
             // 生成手風琴HTML
             let accordionHTML = '';
             const locations = Object.keys(groupedData).sort();
@@ -642,20 +643,20 @@
                             <div id="ssid-${locationIndex}-${typeIndex}-${ssidIndex}" class="ssid-content">
                         `;
                         
+                        // 在同一個SSID下，顯示所有熱點
                         hotspotsList.forEach((hotspot, hotspotIndex) => {
                             const hotspotId = `hotspot-${locationIndex}-${typeIndex}-${ssidIndex}-${hotspotIndex}`;
                             
                             accordionHTML += `
-                                <div class="facility-item" id="${hotspotId}">
-                                    <div class="facility-header" style="background: #8b5cf6; color: white; margin: 5px 0 0 10px;" 
-                                         onclick="toggleDetails('${hotspotId}-details')">
+                                <div class="hotspot-item">
+                                    <div class="hotspot-header" onclick="toggleDetails('${hotspotId}')">
                                         <div>
                                             <i class="fas fa-map-marker-alt" style="margin-right: 8px;"></i>
-                                            <span>${hotspot.LocationID || '未提供ID'}</span>
+                                            <span>位置ID: ${hotspot.LocationID || '未提供ID'}</span>
                                         </div>
                                         <i class="fas fa-chevron-down" id="icon-${hotspotId}"></i>
                                     </div>
-                                    <div id="${hotspotId}-details" class="details-content">
+                                    <div id="${hotspotId}" class="hotspot-details">
                             `;
                             
                             // 顯示所有詳細信息
@@ -682,10 +683,8 @@
                     </div>
                 `;
             });
-
             container.innerHTML = accordionHTML;
         }
-
         function getTotalHotspotsInLocation(vehicleTypes) {
             let total = 0;
             Object.values(vehicleTypes).forEach(ssids => {
@@ -695,7 +694,6 @@
             });
             return total;
         }
-
         function getTotalHotspotsInVehicleType(ssids) {
             let total = 0;
             Object.values(ssids).forEach(hotspots => {
@@ -703,7 +701,6 @@
             });
             return total;
         }
-
         function createHotspotDetailsHTML(hotspot) {
             let html = '';
             
@@ -809,7 +806,6 @@
             
             return html;
         }
-
         function toggleGroup(groupId) {
             const content = document.getElementById(groupId);
             const icon = document.getElementById(`icon-${groupId}`);
@@ -822,10 +818,9 @@
                 if (icon) icon.className = 'fas fa-chevron-down';
             }
         }
-
         function toggleDetails(detailsId) {
             const content = document.getElementById(detailsId);
-            const icon = document.getElementById(`icon-${detailsId.replace('-details', '')}`);
+            const icon = document.getElementById(`icon-${detailsId}`);
             
             if (content.style.display === 'none' || !content.style.display) {
                 content.style.display = 'block';
@@ -835,14 +830,12 @@
                 if (icon) icon.className = 'fas fa-chevron-down';
             }
         }
-
         function showNotification(message, type = 'info') {
             // 移除現有通知
             const existingNotification = document.querySelector('.notification');
             if (existingNotification) {
                 existingNotification.remove();
             }
-
             // 創建通知元素
             const notification = document.createElement('div');
             notification.className = 'notification';
@@ -853,17 +846,14 @@
                 <i class="fas fa-${type === 'success' ? 'check-circle' : (type === 'error' ? 'exclamation-circle' : 'info-circle')}"></i>
                 <span>${message}</span>
             `;
-
             // 添加到文檔
             document.body.appendChild(notification);
-
             // 3秒後移除
             setTimeout(() => {
                 notification.style.animation = 'slideOut 0.3s ease-out';
                 setTimeout(() => notification.remove(), 300);
             }, 3000);
         }
-
         // 首次加載顯示教程
         if (!localStorage.getItem('wifiTutorialShown')) {
             setTimeout(() => {
