@@ -436,6 +436,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script>
+        const PROXY_URL = 'https://cors-anywhere.herokuapp.com/';
         // 定義數據源 - 非固定WiFi熱點資料
         const DATA_SOURCE_URL = 'https://www.digitalpolicy.gov.hk/open_data/wifi_hk/non-fixed-wi-fi-hk-locations.json';
         
@@ -498,7 +499,15 @@
 
         async function loadWifiHotspotData() {
             try {
-                const response = await fetch(DATA_SOURCE_URL);
+                const response = await fetch(PROXY_URL + DATA_SOURCE_URL);
+                if (response.status == 403) {
+                    document.getElementById('accordion-container').innerHTML =
+                        '<div class="no-data"><i class="fas fa-exclamation-triangle"></i><p>加載數據時出錯，請稍後再試</p></div>';
+                    alert(`請先瀏覽 "${PROXY_URL}/corsdemo"，啟用 Proxy 伺服器。`);
+                    showNotification('加載數據時出錯，請稍後再試', 'error');
+                    window.open(`${PROXY_URL}`, "_href");
+                    return;
+                }
                 const data = await response.json();
                 
                 if (data && data.length > 0) {
