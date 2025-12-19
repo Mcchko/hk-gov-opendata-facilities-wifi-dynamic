@@ -714,7 +714,7 @@
             html += '<div class="info-label">位置名稱</div>';
             html += `<div class="info-value">${hotspot.LocationNameTC || '未提供'}`;
             if (hotspot.LocationNameEN) html += `<br/>${hotspot.LocationNameEN}`;
-            if (hotspot.LocationNameSC) html += `<br/>${hotspot.LocationNameSC}`;
+            // if (hotspot.LocationNameSC) html += `<br/>${hotspot.LocationNameSC}`;
             html += '</div>';
             html += '</div>';
             
@@ -722,7 +722,7 @@
             html += '<div class="info-label">交通工具類型</div>';
             html += `<div class="info-value">${hotspot.VehicleTypeNameTC || '未提供'}`;
             if (hotspot.VehicleTypeNameEN) html += `<br/>${hotspot.VehicleTypeNameEN}`;
-            if (hotspot.VehicleTypeNameSC) html += `<br/>${hotspot.VehicleTypeNameSC}`;
+            // if (hotspot.VehicleTypeNameSC) html += `<br/>${hotspot.VehicleTypeNameSC}`;
             html += '</div>';
             html += '</div>';
             
@@ -764,7 +764,7 @@
                 html += '<div class="info-value">';
                 if (hotspot.MoreInformationTC) html += hotspot.MoreInformationTC + '<br/>';
                 if (hotspot.MoreInformationEN) html += hotspot.MoreInformationEN + '<br/>';
-                if (hotspot.MoreInformationSC) html += hotspot.MoreInformationSC;
+                // if (hotspot.MoreInformationSC) html += hotspot.MoreInformationSC;
                 html += '</div>';
                 html += '</div>';
             }
@@ -781,7 +781,7 @@
                     html += `<a href="${hotspot.MoreInformationLinkEN}" target="_blank">${hotspot.MoreInformationLinkEN}</a><br/>`;
                 }
                 if (hotspot.MoreInformationLinkSC) {
-                    html += `<a href="${hotspot.MoreInformationLinkSC}" target="_blank">${hotspot.MoreInformationLinkSC}</a>`;
+                    // html += `<a href="${hotspot.MoreInformationLinkSC}" target="_blank">${hotspot.MoreInformationLinkSC}</a>`;
                 }
                 html += '</div>';
                 html += '</div>';
@@ -794,7 +794,7 @@
                 html += '<div class="info-value">';
                 if (hotspot.RemarksTC) html += hotspot.RemarksTC + '<br/>';
                 if (hotspot.RemarksEN) html += hotspot.RemarksEN + '<br/>';
-                if (hotspot.RemarksSC) html += hotspot.RemarksSC;
+                // if (hotspot.RemarksSC) html += hotspot.RemarksSC;
                 html += '</div>';
                 html += '</div>';
             }
